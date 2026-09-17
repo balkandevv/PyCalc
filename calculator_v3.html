@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator</title>
+<style>
+  :root {
+    --body-bg-1: #0a0c14;
+    --body-bg-2: #161a2b;
+    --case: rgba(24, 28, 42, 0.75);
+    --case-border: rgba(255, 214, 150, 0.12);
+    --panel: rgba(255,255,255,0.04);
+    --display-bg: linear-gradient(160deg, #1c2135, #12151f);
+    --display-text: #ffd28a;
+    --display-sub: #7c85a8;
+    --gold: #e8b56a;
+    --gold-soft: rgba(232, 181, 106, 0.15);
+    --key-num: rgba(255,255,255,0.05);
+    --key-num-text: #eef0fa;
+    --key-num-border: rgba(255,255,255,0.06);
+    --key-fn: rgba(255,255,255,0.03);
+    --key-fn-text: #b9c0dd;
+    --key-op: linear-gradient(160deg, #f0c078, #d99a4a);
+    --key-op-text: #2a1c08;
+    --key-eq: linear-gradient(160deg, #7fd7b0, #47a884);
+    --key-eq-text: #0c2118;
+    --key-mem: rgba(255,255,255,0.05);
+    --key-mem-text: #c9cfe6;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --body-bg-1: #eae3d6;
+      --body-bg-2: #d8cdb6;
+    }
+  }
+  :root[data-theme="light"] { --body-bg-1: #eae3d6; --body-bg-2: #d8cdb6; }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 30% 20%, var(--body-bg-2), var(--body-bg-1) 70%);
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    padding: 24px;
+  }
+
+  .calc {
+    width: 350px;
+    max-width: 100%;
+    background: var(--case);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--case-border);
+    border-radius: 26px;
+    padding: 20px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.06) inset,
+      0 50px 90px rgba(0,0,0,0.55),
+      0 0 60px rgba(232, 181, 106, 0.04);
+  }
+
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 2px 6px 14px;
+  }
+
+  .brand {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    color: var(--gold);
+    font-style: italic;
+  }
+
+  .mode-toggle {
+    display: flex;
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 9px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .mode-toggle button {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    background: transparent;
+    color: #8c93b3;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .mode-toggle button.active {
+    background: var(--key-op);
+    color: var(--key-op-text);
+    box-shadow: 0 2px 10px rgba(232,181,106,0.35);
+  }
+
+  .display {
+    background: var(--display-bg);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 18px;
+    padding: 18px 20px 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 10px 30px rgba(0,0,0,0.35) inset;
+  }
+
+  .history {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--display-sub);
+    height: 32px;
+    overflow-y: auto;
+    text-align: right;
+    line-height: 1.5;
+  }
+  .history div { white-space: nowrap; }
+
+  .expr {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--display-sub);
+    min-height: 16px;
+    text-align: right;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+
+  .result {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    font-size: 40px;
+    color: var(--display-text);
+    line-height: 1.25;
+    text-align: right;
+    word-break: break-all;
+    text-shadow: 0 0 18px rgba(255, 210, 138, 0.35);
+  }
+
+  .mem-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .mem-row button {
+    background: var(--key-mem);
+    color: var(--key-mem-text);
+    font-size: 11px;
+    padding: 9px 0;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .keys {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 9px;
+  }
+
+  .keys.sci {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  button {
+    border: none;
+    border-radius: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 17px;
+    padding: 15px 0;
+    cursor: pointer;
+    transition: transform 0.06s ease, filter 0.15s ease, box-shadow 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:active { transform: scale(0.94); }
+
+  .num {
+    background: var(--key-num);
+    color: var(--key-num-text);
+    border: 1px solid var(--key-num-border);
+  }
+  .num:hover { background: rgba(255,255,255,0.09); }
+
+  .fn {
+    background: var(--key-fn);
+    color: var(--key-fn-text);
+    font-size: 14px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .fn:hover { background: rgba(255,255,255,0.08); }
+
+  .op {
+    background: var(--key-op);
+    color: var(--key-op-text);
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(232,181,106,0.25);
+  }
+  .op:hover { filter: brightness(1.08); }
+  .op.active { filter: brightness(0.85); box-shadow: 0 0 0 2px var(--gold-soft) inset; }
+
+  .eq {
+    background: var(--key-eq);
+    color: var(--key-eq-text);
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(71, 168, 132, 0.3);
+  }
+  .eq:hover { filter: brightness(1.08); }
+
+  .zero { grid-column: span 2; }
+
+  .sci-fn { font-size: 13px; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="calc">
+  <div class="top-row">
+    <div class="brand">CalcPy</div>
+    <p class="brand-link" style="color: #fffefe;">qni.dev</p>
+    <div class="mode-toggle">
+      <button id="modeBasic" class="active">MAIN</button>
+      <button id="modeSci">SCIENTIFIC</button>
+    </div>
+  </div>
+
+  <div class="display">
+    <div class="history" id="history"></div>
+    <div class="expr" id="expr">&nbsp;</div>
+    <div class="result" id="result">0</div>
+  </div>
+
+  <div class="mem-row">
+    <button class="mem" data-action="mc">MC</button>
+    <button class="mem" data-action="mr">MR</button>
+    <button class="mem" data-action="mminus">M−</button>
+    <button class="mem" data-action="mplus">M+</button>
+  </div>
+
+  <div class="keys" id="keys">
+    <button class="sci-fn fn hidden sci-only" data-action="sin">sin</button>
+    <button class="sci-fn fn hidden sci-only" data-action="cos">cos</button>
+    <button class="sci-fn fn hidden sci-only" data-action="tan">tan</button>
+    <button class="sci-fn fn hidden sci-only" data-action="sqrt">√</button>
+    <button class="sci-fn fn hidden sci-only" data-action="pow2">x²</button>
+
+    <button class="fn" data-action="clear">AC</button>
+    <button class="fn" data-action="sign">±</button>
+    <button class="fn" data-action="percent">%</button>
+    <button class="op" data-op="÷">÷</button>
+    <button class="sci-fn fn hidden sci-only" data-action="pi">π</button>
+
+    <button class="num" data-num="7">7</button>
+    <button class="num" data-num="8">8</button>
+    <button class="num" data-num="9">9</button>
+    <button class="op" data-op="×">×</button>
+    <button class="sci-fn fn hidden sci-only" data-action="inv">1/x</button>
+
+    <button class="num" data-num="4">4</button>
+    <button class="num" data-num="5">5</button>
+    <button class="num" data-num="6">6</button>
+    <button class="op" data-op="−">−</button>
+    <button class="sci-fn fn hidden sci-only" data-action="log">log</button>
+
+    <button class="num" data-num="1">1</button>
+    <button class="num" data-num="2">2</button>
+    <button class="num" data-num="3">3</button>
+    <button class="op" data-op="+">+</button>
+    <button class="eq hidden sci-only" data-action="equals" style="grid-row: span 2;">=</button>
+
+    <button class="num zero" data-num="0">0</button>
+    <button class="num" data-action="dot">,</button>
+    <button class="eq" data-action="equals">=</button>
+  </div>
+</div>
+
+<script>
+  const exprEl = document.getElementById('expr');
+  const resultEl = document.getElementById('result');
+  const historyEl = document.getElementById('history');
+  const keysEl = document.getElementById('keys');
+  const modeBasic = document.getElementById('modeBasic');
+  const modeSci = document.getElementById('modeSci');
+
+  let current = '0';
+  let previous = null;
+  let operator = null;
+  let justEvaluated = false;
+  let memory = 0;
+  let history = [];
+
+  function formatNum(n) {
+    if (!isFinite(n) || isNaN(n)) return 'Грешка';
+    let s = n.toString();
+    if (s.length > 12) {
+      s = parseFloat(n.toPrecision(10)).toString();
+    }
+    return s.replace('.', ',');
+  }
+
+  function pushHistory(line) {
+    history.unshift(line);
+    if (history.length > 3) history.pop();
+    historyEl.innerHTML = history.map(h => `<div>${h}</div>`).join('');
+  }
+
+  function updateDisplay() {
+    resultEl.textContent = current;
+    if (operator && previous !== null) {
+      exprEl.textContent = formatNum(previous) + ' ' + operator;
+    } else {
+      exprEl.textContent = '\u00A0';
+    }
+    document.querySelectorAll('.op').forEach(b => {
+      b.classList.toggle('active', b.dataset.op === operator);
+    });
+  }
+
+  function inputNum(d) {
+    if (justEvaluated) { current = '0'; justEvaluated = false; }
+    if (current === '0' && d !== ',') current = d;
+    else current += d;
+    updateDisplay();
+  }
+
+  function inputDot() {
+    if (justEvaluated) { current = '0'; justEvaluated = false; }
+    if (!current.includes(',')) current += ',';
+    updateDisplay();
+  }
+
+  function compute(a, b, op) {
+    switch (op) {
+      case '+': return a + b;
+      case '−': return a - b;
+      case '×': return a * b;
+      case '÷': return b === 0 ? NaN : a / b;
+    }
+  }
+
+  function chooseOperator(op) {
+    if (operator && previous !== null && !justEvaluated) {
+      const a = previous;
+      const b = parseFloat(current.replace(',', '.'));
+      previous = compute(a, b, operator);
+    } else {
+      previous = parseFloat(current.replace(',', '.'));
+    }
+    operator = op;
+    current = '0';
+    justEvaluated = false;
+    updateDisplay();
+  }
+
+  function equals() {
+    if (operator === null || previous === null) return;
+    const a = previous;
+    const b = parseFloat(current.replace(',', '.'));
+    const res = compute(a, b, operator);
+    pushHistory(`${formatNum(a)} ${operator} ${formatNum(b)} = ${formatNum(res)}`);
+    current = formatNum(res);
+    previous = null;
+    operator = null;
+    justEvaluated = true;
+    updateDisplay();
+  }
+
+  function clearAll() {
+    current = '0'; previous = null; operator = null; justEvaluated = false;
+    updateDisplay();
+  }
+
+  function toggleSign() {
+    if (current === '0') return;
+    current = current.startsWith('-') ? current.slice(1) : '-' + current;
+    updateDisplay();
+  }
+
+  function percent() {
+    const v = parseFloat(current.replace(',', '.'));
+    current = formatNum(v / 100);
+    updateDisplay();
+  }
+
+  function applyUnary(fn, label) {
+    const v = parseFloat(current.replace(',', '.'));
+    const res = fn(v);
+    pushHistory(`${label}(${formatNum(v)}) = ${formatNum(res)}`);
+    current = formatNum(res);
+    justEvaluated = true;
+    updateDisplay();
+  }
+
+  const sciActions = {
+    sin: () => applyUnary(v => Math.sin(v * Math.PI / 180), 'sin'),
+    cos: () => applyUnary(v => Math.cos(v * Math.PI / 180), 'cos'),
+    tan: () => applyUnary(v => Math.tan(v * Math.PI / 180), 'tan'),
+    sqrt: () => applyUnary(v => Math.sqrt(v), '√'),
+    pow2: () => applyUnary(v => v * v, 'кв'),
+    inv: () => applyUnary(v => 1 / v, '1/x'),
+    log: () => applyUnary(v => Math.log10(v), 'log'),
+    pi: () => { current = formatNum(Math.PI); justEvaluated = true; updateDisplay(); }
+  };
+
+  function mc() { memory = 0; updateDisplay(); }
+  function mr() { current = formatNum(memory); justEvaluated = true; updateDisplay(); }
+  function mplus() { memory += parseFloat(current.replace(',', '.')); updateDisplay(); }
+  function mminus() { memory -= parseFloat(current.replace(',', '.')); updateDisplay(); }
+
+  keysEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    if (btn.dataset.num !== undefined) inputNum(btn.dataset.num);
+    else if (btn.dataset.op) chooseOperator(btn.dataset.op);
+    else if (btn.dataset.action) {
+      const a = btn.dataset.action;
+      if (a === 'dot') inputDot();
+      else if (a === 'equals') equals();
+      else if (a === 'clear') clearAll();
+      else if (a === 'sign') toggleSign();
+      else if (a === 'percent') percent();
+      else if (sciActions[a]) sciActions[a]();
+    }
+  });
+
+  document.querySelectorAll('.mem').forEach(b => {
+    b.addEventListener('click', () => {
+      const a = b.dataset.action;
+      if (a === 'mc') mc();
+      else if (a === 'mr') mr();
+      else if (a === 'mplus') mplus();
+      else if (a === 'mminus') mminus();
+    });
+  });
+
+  modeBasic.addEventListener('click', () => {
+    modeBasic.classList.add('active');
+    modeSci.classList.remove('active');
+    keysEl.classList.remove('sci');
+    document.querySelectorAll('.sci-only').forEach(el => el.classList.add('hidden'));
+  });
+
+  modeSci.addEventListener('click', () => {
+    modeSci.classList.add('active');
+    modeBasic.classList.remove('active');
+    keysEl.classList.add('sci');
+    document.querySelectorAll('.sci-only').forEach(el => el.classList.remove('hidden'));
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key >= '0' && e.key <= '9') inputNum(e.key);
+    else if (e.key === '.' || e.key === ',') inputDot();
+    else if (e.key === '+') chooseOperator('+');
+    else if (e.key === '-') chooseOperator('−');
+    else if (e.key === '*') chooseOperator('×');
+    else if (e.key === '/') { e.preventDefault(); chooseOperator('÷'); }
+    else if (e.key === 'Enter' || e.key === '=') equals();
+    else if (e.key === 'Escape') clearAll();
+    else if (e.key === 'Backspace') {
+      current = current.length > 1 ? current.slice(0, -1) : '0';
+      updateDisplay();
+    }
+  });
+
+  updateDisplay();
+</script>
+
+</body>
+</html>
